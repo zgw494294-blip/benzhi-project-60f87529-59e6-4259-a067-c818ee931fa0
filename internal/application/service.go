@@ -65,5 +65,9 @@ func (s *Service) mutate(datasetID string, meta CommandMeta, action string, muta
 	if err != nil {
 		return MutationResult{}, err
 	}
+	// 写命令提交后数据集可能已经变化（例如补交标注修订或再次批准），冻结清单预览必须
+	// 反映最新批准版本与标注。缓存只对单个版本稳定，因此任何成功变更后都必须作废缓存，
+	// 否则后续预览会返回首次批准时的摘要并导致冻结确认收到 state_conflict。
+	s.invalidatePreviewCache(datasetID)
 	return decodeResult(payload, replayed)
 }

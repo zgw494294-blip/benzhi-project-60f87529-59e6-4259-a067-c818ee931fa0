@@ -41,6 +41,12 @@ func (s *Service) PreviewManifest(datasetID string) (*domain.ManifestPreview, er
 	return preview, nil
 }
 
+func (s *Service) invalidatePreviewCache(datasetID string) {
+	s.previewMu.Lock()
+	delete(s.manifestCache, datasetID)
+	s.previewMu.Unlock()
+}
+
 func cloneManifestPreview(input *domain.ManifestPreview) *domain.ManifestPreview {
 	if input == nil {
 		return nil
