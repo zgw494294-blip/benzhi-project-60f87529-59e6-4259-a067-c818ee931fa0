@@ -20,8 +20,11 @@ func stateDigest(state persistedState) (string, error) {
 }
 
 func (s *Store) restore() error {
-	frames, err := readFrames(s.eventPath)
+	frames, validOffset, err := readFrames(s.eventPath)
 	if err != nil {
+		return err
+	}
+	if err := s.truncateEventLog(validOffset); err != nil {
 		return err
 	}
 	fromSnapshot, snapshotErr := s.readSnapshot()

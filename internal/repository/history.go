@@ -24,7 +24,7 @@ func (s *Store) History(datasetID string) ([]EventRecord, error) {
 	if s.state.Datasets[datasetID] == nil {
 		return nil, domain.NotFound("数据集", datasetID)
 	}
-	frames, err := readFrames(s.eventPath)
+	frames, _, err := readFrames(s.eventPath)
 	if err != nil {
 		return nil, err
 	}
