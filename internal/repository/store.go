@@ -82,6 +82,20 @@ func (s *Store) Mutate(datasetID string, expectedVersion int64, idempotencyKey, 
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if record, exists := s.state.Idempotency[idempotencyKey]; exists {
+		if record.DatasetID != datasetID || record.Action != action {
+			return nil, false, idempotencyConflict()
+		}
+		return append(json.RawMessage(nil), record.Response...), true, nil
+	}
+	committed := s.state.Datasets[datasetID]
+	committedVersion := int64(0)
+	if committed != nil {
+		committedVersion = committed.Dataset.Version
+	}
+	if expectedVersion != committedVersion {
+		return nil, false, versionConflict(expectedVersion, committedVersion)
+	}
 	record := IdempotencyRecord{DatasetID: datasetID, Action: action, Response: append(json.RawMessage(nil), response...), CreatedAt: time.Now().UTC()}
 	frame := EventFrame{
 		SchemaVersion: schemaVersion, Sequence: s.state.Sequence + 1, PreviousDigest: s.state.LastDigest,
