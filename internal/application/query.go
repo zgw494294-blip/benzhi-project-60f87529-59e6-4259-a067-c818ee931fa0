@@ -162,13 +162,6 @@ func (s *Service) Manifest(datasetID string) (*domain.FrozenManifest, error) {
 }
 
 func (s *Service) VerifyCredential(credentialID string) (*VerificationView, error) {
-	s.verificationMu.RLock()
-	cached := s.verificationCache[credentialID]
-	s.verificationMu.RUnlock()
-	if cached != nil {
-		return cached, nil
-	}
-
 	credential, manifest, err := s.store.Credential(credentialID)
 	if err != nil {
 		return nil, err
@@ -184,9 +177,5 @@ func (s *Service) VerifyCredential(credentialID string) (*VerificationView, erro
 	digest := sha256.Sum256(canonical)
 	actual := hex.EncodeToString(digest[:])
 	verified := actual == manifest.Digest && credential.ManifestDigest == manifest.Digest && credential.DatasetVersion == manifest.DatasetVersion
-	view := &VerificationView{Credential: *credential, Manifest: *manifest, Verified: verified}
-	s.verificationMu.Lock()
-	s.verificationCache[credentialID] = view
-	s.verificationMu.Unlock()
-	return view, nil
+	return &VerificationView{Credential: *credential, Manifest: *manifest, Verified: verified}, nil
 }

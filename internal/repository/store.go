@@ -127,7 +127,11 @@ func (s *Store) Credential(credentialID string) (*domain.ReleaseCredential, *dom
 		if aggregate.Credential != nil && aggregate.Credential.ID == credentialID {
 			credential := *aggregate.Credential
 			manifest := *aggregate.Manifest
-			manifest.Clips = append([]domain.ManifestClip(nil), aggregate.Manifest.Clips...)
+			manifest.Clips = make([]domain.ManifestClip, len(aggregate.Manifest.Clips))
+			for i, clip := range aggregate.Manifest.Clips {
+				manifest.Clips[i] = clip
+				manifest.Clips[i].Annotations = append([]domain.AnnotationRevision(nil), clip.Annotations...)
+			}
 			return &credential, &manifest, nil
 		}
 	}

@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"sync"
 	"time"
 
 	"benzhi-project-60f87529-59e6-4259-a067-c818ee931fa0/internal/domain"
@@ -14,19 +13,16 @@ import (
 )
 
 type Service struct {
-	store             *repository.Store
-	now               func() time.Time
-	id                func(string) string
-	verificationMu    sync.RWMutex
-	verificationCache map[string]*VerificationView
+	store *repository.Store
+	now   func() time.Time
+	id    func(string) string
 }
 
 func NewService(store *repository.Store) *Service {
 	return &Service{
-		store:             store,
-		now:               time.Now,
-		id:                randomID,
-		verificationCache: make(map[string]*VerificationView),
+		store: store,
+		now:   time.Now,
+		id:    randomID,
 	}
 }
 
