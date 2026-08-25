@@ -21,11 +21,40 @@ func (s *Service) Freeze(datasetID string, input FreezeInput) (MutationResult, e
 }
 
 func (s *Service) PreviewManifest(datasetID string) (*domain.ManifestPreview, error) {
+	s.previewMu.RLock()
+	cached := s.manifestCache[datasetID]
+	s.previewMu.RUnlock()
+	if cached != nil {
+		return cloneManifestPreview(cached), nil
+	}
 	current, err := s.store.Get(datasetID)
 	if err != nil {
 		return nil, err
 	}
-	return current.PreviewManifest()
+	preview, err := current.PreviewManifest()
+	if err != nil {
+		return nil, err
+	}
+	s.previewMu.Lock()
+	s.manifestCache[datasetID] = cloneManifestPreview(preview)
+	s.previewMu.Unlock()
+	return preview, nil
+}
+
+func cloneManifestPreview(input *domain.ManifestPreview) *domain.ManifestPreview {
+	if input == nil {
+		return nil
+	}
+	copyValue := *input
+	copyValue.RevisionsByLabel = make(map[string]int, len(input.RevisionsByLabel))
+	for label, count := range input.RevisionsByLabel {
+		copyValue.RevisionsByLabel[label] = count
+	}
+	copyValue.Clips = append([]domain.ManifestClip(nil), input.Clips...)
+	for index := range copyValue.Clips {
+		copyValue.Clips[index].Annotations = append([]domain.AnnotationRevision(nil), input.Clips[index].Annotations...)
+	}
+	return &copyValue
 }
 
 func (s *Service) Release(datasetID string, input ReleaseInput) (MutationResult, error) {
