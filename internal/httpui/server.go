@@ -14,9 +14,27 @@ import (
 var staticFiles embed.FS
 
 type Server struct {
-	service *application.Service
-	logger  *slog.Logger
-	assets  http.Handler
+	service     *application.Service
+	logger      *slog.Logger
+	assets      http.Handler
+	responseLog *responseLog
+}
+
+type responseLog struct {
+	http.ResponseWriter
+	status int
+	bytes  int
+}
+
+func (w *responseLog) WriteHeader(status int) {
+	w.status = status
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *responseLog) Write(payload []byte) (int, error) {
+	written, err := w.ResponseWriter.Write(payload)
+	w.bytes += written
+	return written, err
 }
 
 func New(service *application.Service, logger *slog.Logger) http.Handler {
@@ -24,7 +42,7 @@ func New(service *application.Service, logger *slog.Logger) http.Handler {
 	if err != nil {
 		panic(err)
 	}
-	server := &Server{service: service, logger: logger, assets: http.FileServer(http.FS(assetsFS))}
+	server := &Server{service: service, logger: logger, assets: http.FileServer(http.FS(assetsFS)), responseLog: &responseLog{}}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", server.HandleIndex)
 	mux.HandleFunc("GET /healthz", server.HandleHealth)
@@ -52,7 +70,10 @@ func (s *Server) security(next http.Handler) http.Handler {
 func (s *Server) logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		started := time.Now()
-		next.ServeHTTP(w, r)
-		s.logger.Debug("HTTP 请求", "method", r.Method, "path", r.URL.Path, "elapsed", time.Since(started))
+		s.responseLog.ResponseWriter = w
+		s.responseLog.status = http.StatusOK
+		s.responseLog.bytes = 0
+		next.ServeHTTP(s.responseLog, r)
+		s.logger.Debug("HTTP 请求", "method", r.Method, "path", r.URL.Path, "status", s.responseLog.status, "bytes", s.responseLog.bytes, "elapsed", time.Since(started))
 	})
 }
