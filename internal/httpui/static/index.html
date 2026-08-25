@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="生态声学录音数据集标注、复核、冻结和发布工作台">
+  <title>声境标注放行台</title>
+  <link rel="stylesheet" href="/assets/app.css">
+  <link rel="stylesheet" href="/assets/features.css">
+</head>
+<body>
+  <header class="topbar">
+    <div><span class="brand-mark">声</span><strong>声境标注放行台</strong></div>
+    <p>从野外录音编目到可核验研究发布</p>
+  </header>
+  <main class="layout">
+    <aside class="sidebar">
+      <div class="side-heading"><div><span class="eyebrow">数据空间</span><h2>声学数据集</h2></div><button id="newDataset" class="ghost">新建</button></div>
+      <div id="datasetList" class="dataset-list" aria-live="polite"></div>
+    </aside>
+    <section class="workspace">
+      <div id="notice" class="notice" hidden></div>
+      <section id="emptyState" class="empty-state">
+        <span class="sound-glyph">◖ )))</span><h1>让每一段野外声音都有可信出处</h1>
+        <p>建立数据集，登记片段并完成标注、复核、冻结和发布。</p><button id="emptyCreate" class="primary">创建首个数据集</button>
+      </section>
+      <section id="createPanel" class="panel" hidden>
+        <div class="panel-title"><div><span class="eyebrow">步骤 01</span><h1>建立采集范围</h1></div></div>
+        <form id="createForm" class="form-grid">
+          <label class="wide">数据集标题<input name="title" required maxlength="200" placeholder="例：雾灵山春季晨间声景"></label>
+          <label>采集地点编码<input name="siteCode" required placeholder="SITE-WLS-01"></label>
+          <label>分类体系版本<input name="taxonomyVersion" required placeholder="CN-BIRD-2026.1"></label>
+          <label>采集开始<input name="capturedFrom" type="datetime-local" required></label>
+          <label>采集结束<input name="capturedTo" type="datetime-local" required></label>
+          <label>设备编码（逗号分隔）<input name="deviceCodes" required placeholder="REC-01, REC-02"></label>
+          <label>目标分类编码（逗号分隔）<input name="taxonomyCodes" required placeholder="bird.parus_major, event.rain"></label>
+          <div class="wide actions"><button class="primary" type="submit">创建 draft 数据集</button></div>
+        </form>
+      </section>
+      <section id="detailPanel" hidden>
+        <div class="dataset-head">
+          <div><span id="datasetSite" class="eyebrow"></span><h1 id="datasetTitle"></h1><p id="datasetMeta" class="muted"></p></div>
+          <div class="state-box"><span id="datasetStatus" class="status"></span><span id="datasetVersion" class="version"></span></div>
+        </div>
+        <nav class="stage-track" aria-label="流程阶段">
+          <span data-state="draft">编目</span><span data-state="in_review">送审</span><span data-state="remediation">整改</span><span data-state="approved">批准</span><span data-state="frozen">冻结</span><span data-state="released">发布</span>
+        </nav>
+        <div class="columns">
+          <div class="main-column">
+            <section class="card" id="metadataCard">
+              <div class="card-title"><div><span class="eyebrow">采集边界</span><h2>数据集登记信息</h2></div></div>
+              <div id="metadataView" class="muted"></div>
+              <details id="metadataDetails"><summary>编辑采集范围与分类体系</summary>
+                <form id="metadataForm" class="compact-grid">
+                  <label class="wide">数据集标题<input name="title" required maxlength="200"></label>
+                  <label>采集地点编码<input name="siteCode" required></label><label>分类体系版本<input name="taxonomyVersion" required></label>
+                  <label>采集开始<input name="capturedFrom" type="datetime-local" required></label><label>采集结束<input name="capturedTo" type="datetime-local" required></label>
+                  <label>设备编码（逗号分隔）<input name="deviceCodes" required></label><label>分类编码（逗号分隔）<input name="taxonomyCodes" required></label>
+                  <div class="wide actions"><button class="secondary" type="submit">保存登记信息</button></div>
+                </form>
+              </details>
+            </section>
+            <section class="card" id="catalogCard">
+              <div class="card-title"><div><span class="eyebrow">片段目录</span><h2>野外录音</h2></div><span id="clipCount" class="count"></span></div>
+              <form id="clipFilterForm" class="filter-grid">
+                <label>来源关键字<input name="sourceName" placeholder="文件名关键字"></label>
+                <label>设备<select name="deviceCode"><option value="">全部设备</option></select></label>
+                <label>采集开始<input name="startedFrom" type="datetime-local"></label>
+                <label>采集结束<input name="startedTo" type="datetime-local"></label>
+                <label>生境<input name="habitat" placeholder="精确生境"></label>
+                <div class="filter-actions"><button class="secondary" type="submit">筛选</button><button id="clearClipFilter" class="ghost" type="button">清空</button></div>
+              </form>
+              <div id="clipStats" class="stats-box"></div>
+              <div id="clipList" class="clip-list"></div>
+              <div class="pager"><button id="clipPrev" class="ghost" type="button">上一页</button><span id="clipPage" class="muted"></span><button id="clipNext" class="ghost" type="button">下一页</button></div>
+              <details id="clipDetails"><summary>＋ 登记录音片段</summary>
+                <form id="clipForm" class="compact-grid">
+                  <label>来源文件名<input name="sourceName" required placeholder="WLS_0601_0430.wav"></label>
+                  <label>片段开始时间<input name="startedAt" type="datetime-local" required></label>
+                  <label>时长（毫秒）<input name="durationMs" type="number" min="1" required value="10000"></label>
+                  <label>声道数<input name="channelCount" type="number" min="1" max="64" required value="1"></label>
+                  <label>设备编码<select name="deviceCode" required></select></label>
+                  <label>生境<input name="habitat" required placeholder="温带针阔混交林"></label>
+                  <label class="wide">SHA-256<input name="sha256" required minlength="64" maxlength="64" placeholder="64 位十六进制摘要"></label>
+                  <div class="wide actions"><button class="secondary" type="submit">保存片段</button></div>
+                </form>
+              </details>
+              <details id="batchClipDetails"><summary>＋ 批量登记录音片段</summary>
+                <form id="batchClipForm">
+                  <div id="batchClipRows" class="batch-rows"></div>
+                  <div class="actions"><button id="addBatchRow" class="ghost" type="button">增加一行</button><button class="secondary" type="submit">整批校验并提交</button></div>
+                </form>
+              </details>
+            </section>
+            <section class="card" id="annotationCard">
+              <div class="card-title"><div><span class="eyebrow">修订历史</span><h2>物种与声学事件标注</h2></div></div>
+              <div id="annotationList" class="timeline"></div>
+              <div class="compare-box">
+                <label>片段<select id="compareClip"></select></label><label>修订 A<select id="compareLeft"></select></label><label>修订 B<select id="compareRight"></select></label>
+                <button id="compareRevisions" class="ghost" type="button">对比修订</button><div id="comparisonResult" class="muted"></div>
+              </div>
+              <details id="annotationDetails"><summary>＋ 添加标注修订</summary>
+                <form id="annotationForm" class="compact-grid">
+                  <label>录音片段<select name="clipId" required></select></label>
+                  <label>继承历史修订<select name="sourceRevisionId"><option value="">不继承，完整新增</option></select></label>
+                  <label>分类编码<select name="labelCode" required></select></label>
+                  <label>起点（毫秒）<input name="startMs" type="number" min="0" required value="0"></label>
+                  <label>终点（毫秒）<input name="endMs" type="number" min="1" required value="1000"></label>
+                  <label>置信度<input name="confidence" type="number" min="0" max="1" step="0.01" required value="0.9"></label>
+                  <label>标注员<input name="createdBy" required placeholder="annotator@example.org"></label>
+                  <label class="wide">备注<textarea name="note" rows="2" placeholder="声纹或环境说明"></textarea></label>
+                  <div class="wide actions"><button class="secondary" type="submit">提交新修订</button></div>
+                </form>
+              </details>
+            </section>
+            <section class="card" id="issueCard">
+              <div class="card-title"><div><span class="eyebrow">质量复核</span><h2>问题与整改证据</h2></div><span id="issueCount" class="count"></span></div>
+              <div id="issueList" class="issue-list"></div>
+              <div id="preflightBox" class="preflight-box" hidden></div>
+              <details id="issueDetails"><summary>＋ 登记人工复核问题</summary>
+                <form id="issueForm" class="compact-grid">
+                  <label>关联片段<select name="clipId"><option value="">数据集级问题</option></select></label>
+                  <label>规则编码<input name="ruleCode" required value="MANUAL_REVIEW"></label>
+                  <label>严重度<select name="severity"><option value="blocking">阻断</option><option value="advisory">建议</option></select></label>
+                  <label class="wide">问题描述<textarea name="description" required rows="2"></textarea></label>
+                  <div class="wide actions"><button class="secondary" type="submit">登记并进入整改</button></div>
+                </form>
+              </details>
+            </section>
+          </div>
+          <aside class="action-column">
+            <section class="card sticky"><span class="eyebrow">流程控制</span><h2>放行操作</h2><p id="nextHint" class="muted"></p>
+              <div class="flow-actions">
+                <button id="preflight" class="secondary">送审预检</button>
+                <button id="submitReview" class="primary">提交一致性校验</button>
+                <label id="reviewerWrap">复核负责人<input id="reviewer" placeholder="reviewer@example.org"></label>
+                <button id="approve" class="primary">批准数据集</button>
+                <button id="freeze" class="primary">冻结版本并生成清单</button>
+                <label id="issuerWrap">发布负责人<input id="issuer" placeholder="owner@example.org"></label>
+                <button id="release" class="primary">签发发布凭据</button>
+              </div>
+              <div id="freezePreviewBox" class="manifest-box" hidden></div>
+              <div id="manifestBox" class="manifest-box" hidden></div>
+            </section>
+          </aside>
+        </div>
+      </section>
+    </section>
+  </main>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>
