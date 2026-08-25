@@ -127,7 +127,24 @@ func (s *Service) CompareAnnotations(datasetID, clipID, leftID, rightID string) 
 }
 
 func (s *Service) History(datasetID string) ([]repository.EventRecord, error) {
-	return s.store.History(datasetID)
+	s.historyMu.Lock()
+	previousFailure := s.historyFailures[datasetID]
+	s.historyMu.Unlock()
+	if previousFailure != nil {
+		return nil, previousFailure
+	}
+
+	events, err := s.store.History(datasetID)
+	if err == nil {
+		return events, nil
+	}
+	s.historyMu.Lock()
+	if s.historyFailures[datasetID] == nil {
+		s.historyFailures[datasetID] = err
+	}
+	rememberedFailure := s.historyFailures[datasetID]
+	s.historyMu.Unlock()
+	return nil, rememberedFailure
 }
 
 func (s *Service) Datasets() []DatasetSummary {
