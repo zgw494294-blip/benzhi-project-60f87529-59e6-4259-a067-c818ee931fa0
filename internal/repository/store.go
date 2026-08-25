@@ -88,8 +88,26 @@ func (s *Store) Mutate(datasetID string, expectedVersion int64, idempotencyKey, 
 	if err := s.appendFrame(&frame); err != nil {
 		return nil, false, err
 	}
+	previousSequence := s.state.Sequence
+	previousDigest := s.state.LastDigest
+	previousReleaseSequence := s.state.ReleaseSequence
+	previousAggregate := s.state.Datasets[datasetID]
+	previousIdempotency, hadPreviousIdempotency := s.state.Idempotency[idempotencyKey]
 	s.applyFrame(frame)
 	if err := s.writeSnapshot(); err != nil {
+		s.state.Sequence = previousSequence
+		s.state.LastDigest = previousDigest
+		s.state.ReleaseSequence = previousReleaseSequence
+		if previousAggregate == nil {
+			delete(s.state.Datasets, datasetID)
+		} else {
+			s.state.Datasets[datasetID] = previousAggregate
+		}
+		if hadPreviousIdempotency {
+			s.state.Idempotency[idempotencyKey] = previousIdempotency
+		} else {
+			delete(s.state.Idempotency, idempotencyKey)
+		}
 		return nil, false, fmt.Errorf("事件已提交但投影写入失败: %w", err)
 	}
 	return response, false, nil
