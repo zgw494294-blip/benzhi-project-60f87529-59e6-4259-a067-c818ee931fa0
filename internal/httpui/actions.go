@@ -110,7 +110,7 @@ func (s *Server) updateDataset(w http.ResponseWriter, r *http.Request, datasetID
 	if !s.readInput(w, r, &input) {
 		return
 	}
-	result, err := s.service.UpdateDataset(datasetID, input)
+	result, err := s.service.UpdateDataset(r.Context(), datasetID, input)
 	s.writeMutation(w, result, err)
 }
 
@@ -119,7 +119,7 @@ func (s *Server) addClip(w http.ResponseWriter, r *http.Request, datasetID strin
 	if !s.readInput(w, r, &input) {
 		return
 	}
-	result, err := s.service.AddClip(datasetID, input)
+	result, err := s.service.AddClip(r.Context(), datasetID, input)
 	s.writeMutation(w, result, err)
 }
 

@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"encoding/json"
 	"strconv"
 	"strings"
@@ -28,7 +29,10 @@ func (s *Service) CreateDataset(input CreateDatasetInput) (MutationResult, error
 	})
 }
 
-func (s *Service) UpdateDataset(datasetID string, input UpdateDatasetInput) (MutationResult, error) {
+func (s *Service) UpdateDataset(ctx context.Context, datasetID string, input UpdateDatasetInput) (MutationResult, error) {
+	if err := ctx.Err(); err != nil {
+		return MutationResult{}, err
+	}
 	return s.mutate(datasetID, input.CommandMeta, "dataset.metadata_updated", func(current *domain.Aggregate, _ int64) (*domain.Aggregate, json.RawMessage, error) {
 		if current == nil {
 			return nil, nil, domain.NotFound("数据集", datasetID)
@@ -45,7 +49,10 @@ func (s *Service) UpdateDataset(datasetID string, input UpdateDatasetInput) (Mut
 	})
 }
 
-func (s *Service) AddClip(datasetID string, input AddClipInput) (MutationResult, error) {
+func (s *Service) AddClip(ctx context.Context, datasetID string, input AddClipInput) (MutationResult, error) {
+	if err := ctx.Err(); err != nil {
+		return MutationResult{}, err
+	}
 	return s.mutate(datasetID, input.CommandMeta, "clip.registered", func(current *domain.Aggregate, _ int64) (*domain.Aggregate, json.RawMessage, error) {
 		if current == nil {
 			return nil, nil, domain.NotFound("数据集", datasetID)
