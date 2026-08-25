@@ -66,15 +66,8 @@ func (a *Aggregate) Clone() *Aggregate {
 		clip.Metadata = cloneStringMap(clip.Metadata)
 		copyValue.Clips[id] = clip
 	}
-	copyValue.Annotations = make(map[string][]AnnotationRevision, len(a.Annotations))
-	for id, revisions := range a.Annotations {
-		copyValue.Annotations[id] = append([]AnnotationRevision(nil), revisions...)
-	}
-	copyValue.Issues = make(map[string]ReviewIssue, len(a.Issues))
-	for id, issue := range a.Issues {
-		issue.DecisionTrail = append([]IssueDecision(nil), issue.DecisionTrail...)
-		copyValue.Issues[id] = issue
-	}
+	copyValue.Annotations = a.Annotations
+	copyValue.Issues = a.Issues
 	if a.Manifest != nil {
 		manifest := *a.Manifest
 		manifest.Clips = append([]ManifestClip(nil), a.Manifest.Clips...)
