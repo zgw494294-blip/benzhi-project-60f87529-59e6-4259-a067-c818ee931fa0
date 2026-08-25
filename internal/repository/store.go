@@ -19,6 +19,7 @@ type Store struct {
 	mu           sync.RWMutex
 	directory    string
 	eventPath    string
+	eventFile    *os.File
 	snapshotPath string
 	state        persistedState
 }

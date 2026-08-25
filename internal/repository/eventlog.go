@@ -37,11 +37,14 @@ func (s *Store) appendFrame(frame *EventFrame) error {
 	if len(payload) > maxFrameSize {
 		return errors.New("事件帧超出大小限制")
 	}
-	file, err := os.OpenFile(s.eventPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o640)
-	if err != nil {
-		return fmt.Errorf("打开事件日志: %w", err)
+	if s.eventFile == nil {
+		file, err := os.OpenFile(s.eventPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o640)
+		if err != nil {
+			return fmt.Errorf("打开事件日志: %w", err)
+		}
+		s.eventFile = file
 	}
-	defer file.Close()
+	file := s.eventFile
 	var prefix [8]byte
 	binary.BigEndian.PutUint64(prefix[:], uint64(len(payload)))
 	if _, err := file.Write(prefix[:]); err != nil {
