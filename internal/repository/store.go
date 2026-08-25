@@ -48,11 +48,12 @@ func emptyState() persistedState {
 
 func (s *Store) Mutate(datasetID string, expectedVersion int64, idempotencyKey, action string, mutate Mutation) (json.RawMessage, bool, error) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	if idempotencyKey == "" {
+		s.mu.Unlock()
 		return nil, false, domain.Invalid("idempotencyKey", "idempotencyKey 不能为空")
 	}
 	if record, exists := s.state.Idempotency[idempotencyKey]; exists {
+		s.mu.Unlock()
 		if record.DatasetID != datasetID || record.Action != action {
 			return nil, false, idempotencyConflict()
 		}
@@ -64,16 +65,23 @@ func (s *Store) Mutate(datasetID string, expectedVersion int64, idempotencyKey, 
 		actualVersion = current.Dataset.Version
 	}
 	if expectedVersion != actualVersion {
+		s.mu.Unlock()
 		return nil, false, versionConflict(expectedVersion, actualVersion)
 	}
 	nextRelease := s.state.ReleaseSequence + 1
-	nextAggregate, response, err := mutate(current.Clone(), nextRelease)
+	working := current.Clone()
+	s.mu.Unlock()
+
+	nextAggregate, response, err := mutate(working, nextRelease)
 	if err != nil {
 		return nil, false, err
 	}
 	if nextAggregate == nil || nextAggregate.Dataset.ID != datasetID {
 		return nil, false, errors.New("提交函数返回了无效聚合")
 	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	record := IdempotencyRecord{DatasetID: datasetID, Action: action, Response: append(json.RawMessage(nil), response...), CreatedAt: time.Now().UTC()}
 	frame := EventFrame{
 		SchemaVersion: schemaVersion, Sequence: s.state.Sequence + 1, PreviousDigest: s.state.LastDigest,
